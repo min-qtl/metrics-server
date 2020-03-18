@@ -65,6 +65,9 @@ func NewCommandStartMetricsServer(out, errOut io.Writer, stopCh <-chan struct{})
 
 	flags.MarkDeprecated("deprecated-kubelet-completely-insecure", "This is rarely the right option, since it leaves kubelet communication completely insecure.  If you encounter auth errors, make sure you've enabled token webhook auth on the Kubelet, and if you're in a test cluster with self-signed Kubelet certificates, consider using kubelet-insecure-tls instead.")
 
+	flags.StringVar(&o.kubeletCertFile, "kubelet-cert-file", o.Kubeconfig, "kubelet cert file")
+	flags.StringVar(&o.kubeletKeyFile, "kubelet-key-file", o.Kubeconfig, "kubelet key file")
+
 	o.SecureServing.AddFlags(flags)
 	o.Authentication.AddFlags(flags)
 	o.Authorization.AddFlags(flags)
@@ -93,6 +96,9 @@ type MetricsServerOptions struct {
 	KubeletCAFile                string
 
 	DeprecatedCompletelyInsecureKubelet bool
+
+	kubeletCertFile string
+	kubeletKeyFile  string
 }
 
 // NewMetricsServerOptions constructs a new set of default options for metrics-server.
@@ -181,6 +187,10 @@ func (o MetricsServerOptions) Run(stopCh <-chan struct{}) error {
 		kubeletRestCfg.TLSClientConfig.CAData = nil
 	}
 	kubeletConfig := summary.GetKubeletConfig(kubeletRestCfg, o.KubeletPort, o.InsecureKubeletTLS, o.DeprecatedCompletelyInsecureKubelet)
+	if len(o.kubeletCertFile) > 0 {
+		kubeletConfig.RESTConfig.KeyFile = o.kubeletKeyFile
+		kubeletConfig.RESTConfig.CertFile = o.kubeletCertFile
+	}
 	kubeletClient, err := summary.KubeletClientFor(kubeletConfig)
 	if err != nil {
 		return fmt.Errorf("unable to construct a client to connect to the kubelets: %v", err)

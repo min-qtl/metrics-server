@@ -22,6 +22,8 @@ spec:
       labels:
         k8s-app: metrics-server
     spec:
+      imagePullSecrets:
+      - name: myregistrykey
       serviceAccountName: metrics-server
       volumes:
       # mount in tmp so we can safely use from-scratch images and/or read-only containers
@@ -29,8 +31,13 @@ spec:
         emptyDir: {}
       containers:
       - name: metrics-server
-        image: k8s.gcr.io/metrics-server-amd64:v0.3.6
+        image: registry-qcc.quantil.com/qcc/metrics-server-amd64:v0.3.6
         imagePullPolicy: Always
+        env:
+        - name: KUBERNETES_SERVICE_HOST
+          value: qcc-api-la2-mgt.quantil.com
+        args:
+        - --kubelet-preferred-address-types=InternalIP,InternalDNS,Hostname,ExternalIP,ExternalDNS
         volumeMounts:
         - name: tmp-dir
           mountPath: /tmp
